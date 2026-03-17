@@ -1,0 +1,16 @@
+services:
+  adk-agent:
+    build:
+      context: .
+    container_name: google-adk-agent
+    env_file:
+      - .env
+    ports:
+      - "${PORT:-8000}:${PORT:-8000}"
+    volumes:
+      - ./data:/data
+      - .:/app
+    command: >
+      sh -c "uvicorn app:app
+      --host ${HOST:-0.0.0.0}
+      --port ${PORT:-8000}"
