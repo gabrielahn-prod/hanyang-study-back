@@ -2,6 +2,7 @@
 
 `google-adk` 기반의 로컬 테스트용 에이전트 예제입니다.  
 `.env`에서 모델 공급자와 API 키를 분리하고, `uvicorn`으로 ADK FastAPI 앱을 직접 서빙할 수 있게 구성했습니다.  
+Docker에서는 `ADK_SERVER_MODE` 값으로 API 서버와 `adk web agents` 실행 모드를 전환할 수 있습니다.  
 현재는 루트 에이전트가 3개의 서브에이전트(`time_agent`, `runtime_agent`, `general_agent`)를 오케스트레이션합니다.
 
 ## 모델 지원
@@ -49,6 +50,7 @@ MODEL_PROVIDER=gemini
 GOOGLE_API_KEY=your_google_api_key
 GEMINI_MODEL=gemini-2.0-flash
 AGENTS_DIR=agents
+ADK_SERVER_MODE=api
 PORT=8000
 SESSION_DB_URI=sqlite:////data/sessions.db
 ALLOW_ORIGINS=http://localhost:4200,http://127.0.0.1:4200
@@ -61,6 +63,7 @@ MODEL_PROVIDER=openai
 OPENAI_API_KEY=your_openai_api_key
 OPENAI_MODEL=openai/gpt-4o-mini
 AGENTS_DIR=agents
+ADK_SERVER_MODE=api
 PORT=8000
 SESSION_DB_URI=sqlite:////data/sessions.db
 ALLOW_ORIGINS=http://localhost:4200,http://127.0.0.1:4200
@@ -72,7 +75,7 @@ ALLOW_ORIGINS=http://localhost:4200,http://127.0.0.1:4200
 docker compose up --build
 ```
 
-서버가 뜨면 기본 주소는 아래입니다.
+기본값 `ADK_SERVER_MODE=api` 에서는 현재처럼 FastAPI 래퍼가 올라옵니다.
 
 ```text
 http://localhost:8000
@@ -88,6 +91,18 @@ http://localhost:8000/docs
 
 ```text
 http://localhost:8000/healthz
+```
+
+컨테이너에서 `adk web agents` 모드로 직접 띄우려면 `.env`에 아래 값을 넣고 다시 실행하면 됩니다.
+
+```env
+ADK_SERVER_MODE=web
+```
+
+이 경우 컨테이너는 내부에서 `python -m google.adk.cli web agents --host 0.0.0.0 --port 8000` 형태로 구동되며, Web UI는 아래 경로에서 확인할 수 있습니다.
+
+```text
+http://localhost:8000/dev-ui/
 ```
 
 ## 3. 로컬 API 테스트
@@ -154,6 +169,8 @@ npx @google/adk-devtools web --backend=http://localhost:8000
 ```bash
 adk web agents
 ```
+
+Docker에서도 동일한 로딩 경로를 쓰고 싶으면 `ADK_SERVER_MODE=web`로 실행하면 됩니다.
 
 프로젝트 루트에서 그냥 `adk web`를 실행하면 현재 작업 디렉터리의 직계 하위 폴더를 앱으로 해석합니다. 이 저장소에서는 그 경우 `agents`가 앱 이름이 되므로, 호환용 `agents/agent.py`가 `env_agent`의 `root_agent`를 다시 내보내도록 구성했습니다.
 
