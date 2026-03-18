@@ -1,30 +1,34 @@
 # Google ADK Local Agent
 
-`google-adk` 기반의 로컬 테스트용 에이전트 예제입니다.  
-`.env`에서 모델 공급자와 API 키를 분리하고, `uvicorn`으로 ADK FastAPI 앱을 직접 서빙할 수 있게 구성했습니다.  
-Docker에서는 `ADK_SERVER_MODE` 값으로 API 서버와 `adk web agents` 실행 모드를 전환할 수 있습니다.  
-현재는 루트 에이전트가 3개의 서브에이전트(`time_agent`, `runtime_agent`, `general_agent`)를 오케스트레이션합니다.
+`Google ADK` 기반의 로컬 테스트용 멀티 에이전트 예제입니다. 현재 저장소는 `env_agent` 루트 에이전트가 3개의 서브에이전트(`time_agent`, `runtime_agent`, `general_agent`)를 오케스트레이션하고, 이를 `FastAPI` 또는 `adk web`으로 실행할 수 있게 구성되어 있습니다.
 
-## 모델 지원
+모델 공급자는 환경 변수로 전환합니다.
 
-`Google ADK`는 기본적으로 Gemini 모델을 바로 사용할 수 있고, 공식 문서 기준으로 `LiteLlm` 래퍼를 통해 OpenAI 같은 외부 모델도 사용할 수 있습니다.
+- `MODEL_PROVIDER=gemini`
+- `MODEL_PROVIDER=openai`
 
-- Gemini: `MODEL_PROVIDER=gemini`
-- OpenAI: `MODEL_PROVIDER=openai`
-
-OpenAI를 사용할 때는 `OPENAI_MODEL` 값을 LiteLLM 형식으로 넣어야 합니다.
-
-예시:
+OpenAI를 사용할 때는 `LiteLlm` 경유로 연결되므로 `OPENAI_MODEL`은 LiteLLM 형식으로 지정합니다.
 
 ```env
 OPENAI_MODEL=openai/gpt-4o-mini
 ```
+
+## 구성 개요
+
+- `app.py`: `google.adk.cli.fast_api.get_fast_api_app(...)`로 ADK FastAPI 앱 생성
+- `agents/env_agent/agent.py`: 루트 에이전트와 3개 서브에이전트 정의
+- `agents/agent.py`: 루트 디렉터리에서 `adk web` 실행 시 호환용 엔트리포인트
+- `start.sh`: `ADK_SERVER_MODE`에 따라 `uvicorn` 또는 `adk web` 실행
+- `docker-compose.yml`: 로컬 Docker 실행용 기본 설정
 
 ## 파일 구조
 
 ```text
 .
 ├── .env.example
+├── AGENT_ARCHITECTURE.md
+├── Dockerfile
+├── README.md
 ├── agents
 │   ├── __init__.py
 │   ├── agent.py
@@ -32,80 +36,140 @@ OPENAI_MODEL=openai/gpt-4o-mini
 │       ├── __init__.py
 │       └── agent.py
 ├── app.py
-├── Dockerfile
 ├── docker-compose.yml
-└── requirements.txt
+├── requirements.txt
+└── start.sh
 ```
 
-## 1. 환경 변수 준비
+## 환경 변수
+
+먼저 예제 파일을 복사합니다.
 
 ```bash
 cp .env.example .env
 ```
 
-### Gemini 사용 예시
+### Gemini 예시
 
 ```env
 MODEL_PROVIDER=gemini
 GOOGLE_API_KEY=your_google_api_key
 GEMINI_MODEL=gemini-2.0-flash
+APP_NAME=env_agent
 AGENTS_DIR=agents
 ADK_SERVER_MODE=api
+HOST=0.0.0.0
 PORT=8000
 SESSION_DB_URI=sqlite:////data/sessions.db
 ALLOW_ORIGINS=http://localhost:4200,http://127.0.0.1:4200
 ```
 
-### OpenAI 사용 예시
+### OpenAI 예시
 
 ```env
 MODEL_PROVIDER=openai
 OPENAI_API_KEY=your_openai_api_key
 OPENAI_MODEL=openai/gpt-4o-mini
+APP_NAME=env_agent
 AGENTS_DIR=agents
 ADK_SERVER_MODE=api
+HOST=0.0.0.0
 PORT=8000
 SESSION_DB_URI=sqlite:////data/sessions.db
 ALLOW_ORIGINS=http://localhost:4200,http://127.0.0.1:4200
 ```
 
-## 2. Docker Compose 실행
+## Docker로 로컬 실행
+
+이 저장소는 로컬 Docker 실행을 기본 지원합니다. `docker-compose.yml`은 현재 디렉터리를 컨테이너 `/app`에 마운트하고, 세션 DB 저장용 `./data` 디렉터리도 함께 연결합니다.
+
+### 1. 환경 변수 준비
+
+```bash
+cp .env.example .env
+```
+
+필요한 API 키를 `.env`에 채웁니다.
+
+### 2. 컨테이너 실행
 
 ```bash
 docker compose up --build
 ```
 
-기본값 `ADK_SERVER_MODE=api` 에서는 현재처럼 FastAPI 래퍼가 올라옵니다.
+백그라운드 실행:
 
-```text
-http://localhost:8000
+```bash
+docker compose up --build -d
 ```
 
-Swagger 문서는 아래에서 확인할 수 있습니다.
+중지:
 
-```text
-http://localhost:8000/docs
+```bash
+docker compose down
 ```
 
-헬스 체크는 아래입니다.
+로그 확인:
 
-```text
-http://localhost:8000/healthz
+```bash
+docker compose logs -f
 ```
 
-컨테이너에서 `adk web agents` 모드로 직접 띄우려면 `.env`에 아래 값을 넣고 다시 실행하면 됩니다.
+### 3. 기본 API 모드 확인
+
+기본값은 `ADK_SERVER_MODE=api`이며, 이 경우 `start.sh`가 아래 명령으로 서버를 올립니다.
+
+```bash
+uvicorn app:app --host 0.0.0.0 --port 8000
+```
+
+접속 주소:
+
+- API 루트: `http://localhost:8000`
+- Swagger: `http://localhost:8000/docs`
+- 헬스 체크: `http://localhost:8000/healthz`
+- 앱 목록: `http://localhost:8000/list-apps`
+
+### 4. Docker에서 ADK Web 모드로 실행
+
+`.env`에서 아래처럼 변경한 뒤 다시 올리면 됩니다.
 
 ```env
 ADK_SERVER_MODE=web
 ```
 
-이 경우 컨테이너는 내부에서 `python -m google.adk.cli web agents --host 0.0.0.0 --port 8000` 형태로 구동되며, Web UI는 아래 경로에서 확인할 수 있습니다.
+이 경우 `start.sh`가 `python -m google.adk.cli web`를 실행합니다. 접속 주소는 아래입니다.
 
-```text
-http://localhost:8000/dev-ui/
+- Web UI: `http://localhost:8000/dev-ui/`
+
+다시 API 모드로 되돌리려면 `.env`를 수정한 뒤 컨테이너를 재시작합니다.
+
+```bash
+docker compose down
+docker compose up --build
 ```
 
-## 3. 로컬 API 테스트
+### 5. Docker 내부 상태 확인
+
+실행 중 컨테이너에 들어가려면:
+
+```bash
+docker compose exec adk-agent sh
+```
+
+앱 파일이 마운트되었는지 확인:
+
+```bash
+docker compose exec adk-agent ls /app
+```
+
+세션 DB 저장 경로 확인:
+
+```bash
+docker compose exec adk-agent ls /data
+```
+
+## 로컬 API 테스트
 
 ### 앱 목록 확인
 
@@ -141,9 +205,21 @@ curl -X POST http://localhost:8000/run \
   }'
 ```
 
-## 4. 로컬 Python 실행
+### 루트 엔드포인트 확인
 
-Docker 없이 직접 돌리려면:
+```bash
+curl http://localhost:8000/
+```
+
+### 헬스 체크
+
+```bash
+curl http://localhost:8000/healthz
+```
+
+## Python으로 로컬 실행
+
+Docker 없이 직접 실행하려면:
 
 ```bash
 python -m venv .venv
@@ -154,30 +230,31 @@ export SESSION_DB_URI=sqlite:///./local_sessions.db
 uvicorn app:app --host 0.0.0.0 --port 8000
 ```
 
-## 5. ADK Web 연결
+## ADK Web 직접 실행
 
-백엔드가 뜬 상태에서 ADK Web은 별도로 백엔드를 바라보게 실행하면 됩니다.
+프로젝트 루트에서 직접 실행할 수도 있습니다.
 
 ```bash
-npx @google/adk-devtools web --backend=http://localhost:8000
+python -m google.adk.cli web --host 0.0.0.0 --port 8000 agents
 ```
 
-브라우저에서 `http://localhost:4200`으로 접속하면 됩니다.
-
-직접 `adk web` CLI를 쓰는 경우에는 에이전트 루트 디렉터리를 명시하는 편이 안전합니다.
+또는 설치 환경에 따라:
 
 ```bash
 adk web agents
 ```
 
-Docker에서도 동일한 로딩 경로를 쓰고 싶으면 `ADK_SERVER_MODE=web`로 실행하면 됩니다.
+이 저장소는 루트에서 `adk web`를 실행했을 때의 로딩 차이를 흡수하기 위해 `agents/agent.py`에서 `env_agent.root_agent`를 다시 export 하도록 구성되어 있습니다.
 
-프로젝트 루트에서 그냥 `adk web`를 실행하면 현재 작업 디렉터리의 직계 하위 폴더를 앱으로 해석합니다. 이 저장소에서는 그 경우 `agents`가 앱 이름이 되므로, 호환용 `agents/agent.py`가 `env_agent`의 `root_agent`를 다시 내보내도록 구성했습니다.
+## 현재 에이전트 구성
+
+- `root_agent`: 요청 분류 및 서브에이전트 위임
+- `time_agent`: 현재 시간과 타임존 관련 요청 처리
+- `runtime_agent`: 현재 모델 공급자와 모델 설정 확인
+- `general_agent`: 일반 대화 및 fallback 처리
 
 ## 참고
 
-공식 문서 기준:
-
-- `google.adk.cli.fast_api.get_fast_api_app(...)`로 ADK FastAPI 앱을 직접 만들 수 있습니다.
-- ADK 런타임은 에이전트 디렉터리 아래의 각 하위 폴더를 하나의 앱으로 인식하므로, 런타임 대상은 `agents/`처럼 별도 폴더로 분리하는 편이 안전합니다.
-- OpenAI 같은 외부 모델은 `from google.adk.models.lite_llm import LiteLlm` 방식으로 사용할 수 있습니다.
+- `get_runtime_config()`는 현재 provider, model, app name만 반환하며 API 키는 노출하지 않습니다.
+- `SESSION_DB_URI`, `ARTIFACT_SERVICE_URI`, `MEMORY_SERVICE_URI`, `EVAL_STORAGE_URI`는 `app.py`에서 ADK 런타임으로 전달됩니다.
+- 더 자세한 구조 설명은 `AGENT_ARCHITECTURE.md`를 참고하면 됩니다.
