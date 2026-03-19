@@ -30,9 +30,11 @@ def get_local_time(city: str = "Seoul") -> dict:
 
 def get_runtime_config() -> dict:
     """Returns safe runtime settings without exposing secrets."""
-    provider = os.getenv("MODEL_PROVIDER", "gemini").lower()
+    provider = os.getenv("MODEL_PROVIDER", "ollama").lower()
     if provider == "openai":
         active_model = os.getenv("OPENAI_MODEL", "openai/gpt-4o-mini")
+    elif provider == "ollama":
+        active_model = os.getenv("OLLAMA_MODEL", "ollama_chat/llama3.1:8b")
     else:
         active_model = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
     return {
@@ -43,8 +45,14 @@ def get_runtime_config() -> dict:
 
 
 def build_model():
-    provider = os.getenv("MODEL_PROVIDER", "gemini").strip().lower()
-    if provider == "openai":
+    provider = os.getenv("MODEL_PROVIDER", "ollama").strip().lower()
+    if provider == "ollama":
+        ollama_api_base = os.getenv("OLLAMA_API_BASE")
+        return LiteLlm(
+            model=os.getenv("OLLAMA_MODEL", "ollama_chat/llama3.1:8b"),
+            api_base=ollama_api_base if ollama_api_base else None
+        )
+    elif provider == "openai":
         model_name = os.getenv("OPENAI_MODEL", "openai/gpt-4o-mini")
         return LiteLlm(model=model_name)
     return os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
