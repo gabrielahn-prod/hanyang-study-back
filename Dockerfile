@@ -11,8 +11,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 RUN mkdir -p /data
-RUN chmod +x /app/start.sh
 
 EXPOSE 8000
 
-CMD ["/app/start.sh"]
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]

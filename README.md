@@ -21,7 +21,6 @@ OLLAMA_MODEL=ollama_chat/llama3.1:8b
 - `app.py`: `google.adk.cli.fast_api.get_fast_api_app(...)`로 ADK FastAPI 앱 생성
 - `agents/env_agent/agent.py`: 루트 에이전트와 3개 서브에이전트 정의
 - `agents/agent.py`: 루트 디렉터리에서 `adk web` 실행 시 호환용 엔트리포인트
-- `start.sh`: `ADK_SERVER_MODE`에 따라 `uvicorn` 또는 `adk web` 실행
 - `docker-compose.yml`: 로컬 Docker 실행용 기본 설정
 
 ## 파일 구조
@@ -41,7 +40,6 @@ OLLAMA_MODEL=ollama_chat/llama3.1:8b
 ├── app.py
 ├── docker-compose.yml
 ├── requirements.txt
-└── start.sh
 ```
 
 ## 환경 변수
@@ -65,7 +63,6 @@ OLLAMA_MODEL=ollama_chat/llama3.1:8b
 
 APP_NAME=env_agent
 AGENTS_DIR=agents
-ADK_SERVER_MODE=api
 HOST=0.0.0.0
 PORT=8000
 SESSION_DB_URI=sqlite:////data/sessions.db
@@ -80,7 +77,6 @@ GOOGLE_API_KEY=your_google_api_key
 GEMINI_MODEL=gemini-2.0-flash
 APP_NAME=env_agent
 AGENTS_DIR=agents
-ADK_SERVER_MODE=api
 HOST=0.0.0.0
 PORT=8000
 SESSION_DB_URI=sqlite:////data/sessions.db
@@ -95,7 +91,6 @@ OPENAI_API_KEY=your_openai_api_key
 OPENAI_MODEL=openai/gpt-4o-mini
 APP_NAME=env_agent
 AGENTS_DIR=agents
-ADK_SERVER_MODE=api
 HOST=0.0.0.0
 PORT=8000
 SESSION_DB_URI=sqlite:////data/sessions.db
@@ -104,7 +99,7 @@ ALLOW_ORIGINS=http://localhost:4200,http://127.0.0.1:4200
 
 ## Docker로 로컬 실행
 
-이 저장소는 로컬 Docker 실행을 기본 지원합니다. `docker-compose.yml`은 현재 디렉터리를 컨테이너 `/app`에 마운트하고, 세션 DB 저장용 `./data` 디렉터리도 함께 연결합니다.
+이 저장소는 로컬 Docker 실행을 기본 지원합니다. `docker-compose.yml`은 현재 디렉터리를 컨테이너 `/app`에 마운트하고, 세션 DB 저장용 `./data` 디렉터리도 함께 연결합니다. 쉘 엔트리포인트 없이 Compose가 실행 명령을 직접 지정합니다.
 
 ### 1. 환경 변수 준비
 
@@ -140,7 +135,7 @@ docker compose logs -f
 
 ### 3. 기본 API 모드 확인
 
-기본값은 `ADK_SERVER_MODE=api`이며, 이 경우 `start.sh`가 아래 명령으로 서버를 올립니다.
+기본 서비스 `adk-agent`는 아래 명령으로 서버를 올립니다.
 
 ```bash
 uvicorn app:app --host 0.0.0.0 --port 8000
@@ -155,17 +150,29 @@ uvicorn app:app --host 0.0.0.0 --port 8000
 
 ### 4. Docker에서 ADK Web 모드로 실행
 
-`.env`에서 아래처럼 변경한 뒤 다시 올리면 됩니다.
+Web UI가 필요하면 `web` 프로필로 `adk-web` 서비스를 실행합니다.
 
-```env
-ADK_SERVER_MODE=web
+```bash
+docker compose --profile web up --build adk-web
 ```
 
-이 경우 `start.sh`가 `python -m google.adk.cli web`를 실행합니다. 접속 주소는 아래입니다.
+백그라운드 실행:
+
+```bash
+docker compose --profile web up --build -d adk-web
+```
+
+이 서비스는 아래 명령으로 실행됩니다.
+
+```bash
+python -m google.adk.cli web --host 0.0.0.0 --port 8000 agents
+```
+
+접속 주소는 아래입니다.
 
 - Web UI: `http://localhost:8000/dev-ui/`
 
-다시 API 모드로 되돌리려면 `.env`를 수정한 뒤 컨테이너를 재시작합니다.
+다시 API 모드로 되돌리려면 기본 서비스를 다시 실행하면 됩니다.
 
 ```bash
 docker compose down
