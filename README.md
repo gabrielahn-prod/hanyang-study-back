@@ -4,13 +4,16 @@
 
 모델 공급자는 환경 변수로 전환합니다.
 
-- `MODEL_PROVIDER=gemini`
+- `MODEL_PROVIDER=gemini` (기본값)
 - `MODEL_PROVIDER=openai`
+- `MODEL_PROVIDER=ollama`
 
-OpenAI를 사용할 때는 `LiteLlm` 경유로 연결되므로 `OPENAI_MODEL`은 LiteLLM 형식으로 지정합니다.
+OpenAI나 Ollama를 사용할 때는 `LiteLlm`을 통해 연결되므로 각각의 모델을 해당 형식에 맞게 지정합니다:
 
 ```env
 OPENAI_MODEL=openai/gpt-4o-mini
+OLLAMA_MODEL=ollama_chat/llama3.1:8b
+# 원격 터널을 사용하는 경우 OLLAMA_API_BASE도 지정 가능합니다.
 ```
 
 ## 구성 개요
@@ -47,6 +50,26 @@ OPENAI_MODEL=openai/gpt-4o-mini
 
 ```bash
 cp .env.example .env
+```
+
+### Ollama 예시 (로컬 LLM)
+
+```env
+# 사용할 모델 제공자: gemini, openai 또는 ollama
+MODEL_PROVIDER=ollama
+
+# Ollama 설정 (로컬 서버 기본값은 http://localhost:11434 이며 명시하지 않아도 됨)
+# 원격 터널을 사용할 시 OLLAMA_API_BASE=https://... 처럼 입력
+OLLAMA_API_BASE=
+OLLAMA_MODEL=ollama_chat/llama3.1:8b
+
+APP_NAME=env_agent
+AGENTS_DIR=agents
+ADK_SERVER_MODE=api
+HOST=0.0.0.0
+PORT=8000
+SESSION_DB_URI=sqlite:////data/sessions.db
+ALLOW_ORIGINS=http://localhost:4200,http://127.0.0.1:4200
 ```
 
 ### Gemini 예시
