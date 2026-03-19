@@ -1,14 +1,23 @@
+x-adk-common: &adk-common
+  build:
+    context: .
+  env_file:
+    - .env
+  ports:
+    - "${PORT:-8000}:8000"
+  volumes:
+    - ./data:/data
+    - .:/app
+
 services:
   adk-agent:
-    build:
-      context: .
+    <<: *adk-common
     container_name: google-adk-agent
-    env_file:
-      - .env
-    environment:
-      ADK_SERVER_MODE: ${ADK_SERVER_MODE:-api}
-    ports:
-      - "${PORT:-8000}:${PORT:-8000}"
-    volumes:
-      - ./data:/data
-      - .:/app
+    command: ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
+
+  adk-web:
+    <<: *adk-common
+    container_name: google-adk-web
+    profiles: ["web"]
+    command:
+      ["python", "-m", "google.adk.cli", "web", "--host", "0.0.0.0", "--port", "8000", "agents"]
