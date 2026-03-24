@@ -4,11 +4,10 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from google.adk.cli.fast_api import get_fast_api_app
 
-from google.adk.agents import Agent
-from google.adk.models.lite_llm import LiteLlm
 from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
 from google.genai import types
+from agents.env_agent.agent import root_agent
 
 def _parse_allow_origins(value: str | None) -> list[str] | None:
     if not value:
@@ -16,29 +15,13 @@ def _parse_allow_origins(value: str | None) -> list[str] | None:
     origins = [origin.strip() for origin in value.split(",") if origin.strip()]
     return origins or None
 
-APP_NAME = "jihun_local_demo"
+APP_NAME = os.getenv("APP_NAME", "env_agent")
 USER_ID = "demo_user"
 SESSION_ID = "demo_session"
 
-# 로컬 LLM 및 에이전트 설정
-ollama_api_base = os.getenv("OLLAMA_API_BASE") # 만약 외부 접근이 필요하다면 https://지훈님도메인 입력
-local_llm = LiteLlm(
-    model="ollama_chat/llama3.1:8b",
-    api_base=ollama_api_base if ollama_api_base else None
-)
-
-agent = Agent(
-    name="Jihun_Assistant",
-    model=local_llm,
-    instruction="""
-당신은 조지훈의 전문 비서입니다.
-사용자의 요청에 한국어로 친절하고 정확하게 답변하세요.
-""",
-)
-
 session_service = InMemorySessionService()
 runner = Runner(
-    agent=agent,
+    agent=root_agent,
     app_name=APP_NAME,
     session_service=session_service,
 )
@@ -117,4 +100,3 @@ def create_app() -> FastAPI:
 
 
 app = create_app()
-
