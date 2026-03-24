@@ -56,9 +56,10 @@ cp .env.example .env
 # 사용할 모델 제공자: gemini, openai 또는 ollama
 MODEL_PROVIDER=ollama
 
-# Ollama 설정 (로컬 서버 기본값은 http://localhost:11434 이며 명시하지 않아도 됨)
+# Ollama 설정
+# Docker에서 호스트 PC의 Ollama를 사용할 때는 아래 값을 사용
 # 원격 터널을 사용할 시 OLLAMA_API_BASE=https://... 처럼 입력
-OLLAMA_API_BASE=
+OLLAMA_API_BASE=http://host.docker.internal:11434
 OLLAMA_MODEL=ollama_chat/llama3.1:8b
 
 APP_NAME=env_agent
@@ -100,6 +101,8 @@ ALLOW_ORIGINS=http://localhost:4200,http://127.0.0.1:4200
 ## Docker로 로컬 실행
 
 이 저장소는 로컬 Docker 실행을 기본 지원합니다. `docker-compose.yml`은 현재 디렉터리를 컨테이너 `/app`에 마운트하고, 세션 DB 저장용 `./data` 디렉터리도 함께 연결합니다. 쉘 엔트리포인트 없이 Compose가 실행 명령을 직접 지정합니다.
+
+`MODEL_PROVIDER=ollama`일 때 Docker 컨테이너 안의 `localhost`는 호스트 PC가 아니라 컨테이너 자신을 가리킵니다. 그래서 Docker Desktop(Windows/macOS)에서 호스트 Ollama를 쓰려면 `OLLAMA_API_BASE=http://host.docker.internal:11434`를 사용해야 합니다. 이 저장소의 Compose 설정은 기본값도 그 주소로 맞춰 두었습니다.
 
 ### 1. 환경 변수 준비
 
