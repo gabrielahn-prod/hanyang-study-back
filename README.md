@@ -301,7 +301,7 @@ adk web agents
 
 이 저장소는 루트에서 `adk web`를 실행했을 때의 로딩 차이를 흡수하기 위해 `agents/agent.py`에서 `env_agent.root_agent`를 다시 export 하도록 구성되어 있습니다.
 
-## 현재 에이전트 구성
+## 현재 에이전트 구성d
 
 - `root_agent`: 요청 분류 및 서브에이전트 위임
 - `time_agent`: 현재 시간과 타임존 관련 요청 처리
