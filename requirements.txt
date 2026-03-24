@@ -1,4 +1,5 @@
 google-adk
 litellm
+mcp
 python-dotenv
 uvicorn
