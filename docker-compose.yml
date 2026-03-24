@@ -3,11 +3,15 @@ x-adk-common: &adk-common
     context: .
   env_file:
     - .env
+  environment:
+    OLLAMA_API_BASE: ${OLLAMA_API_BASE:-http://host.docker.internal:11434}
   ports:
     - "${PORT:-8000}:8000"
   volumes:
     - ./data:/data
     - .:/app
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
 
 services:
   adk-agent:
