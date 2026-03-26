@@ -7,6 +7,8 @@ x-adk-common: &adk-common
     OLLAMA_API_BASE: ${OLLAMA_API_BASE:-http://host.docker.internal:11434}
     PAPAGO_MCP_URL: ${PAPAGO_MCP_URL:-http://host.docker.internal:8001/mcp}
     PAPAGO_MCP_TIMEOUT: ${PAPAGO_MCP_TIMEOUT:-10}
+    CALENDAR_MCP_URL: ${CALENDAR_MCP_URL:-http://host.docker.internal:8002/mcp}
+    CALENDAR_MCP_TIMEOUT: ${CALENDAR_MCP_TIMEOUT:-10}
   ports:
     - "${PORT:-8000}:8000"
   volumes:

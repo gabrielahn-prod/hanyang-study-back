@@ -75,6 +75,21 @@ def build_papago_toolset() -> McpToolset:
     )
 
 
+def build_calendar_toolset() -> McpToolset:
+    calendar_mcp_url = os.getenv("CALENDAR_MCP_URL")
+    if not calendar_mcp_url:
+        default_host = "host.docker.internal" if os.path.exists("/.dockerenv") else "127.0.0.1"
+        calendar_mcp_url = f"http://{default_host}:8002/mcp"
+    calendar_mcp_timeout = float(os.getenv("CALENDAR_MCP_TIMEOUT", "10"))
+    return McpToolset(
+        connection_params=StreamableHTTPConnectionParams(
+            url=calendar_mcp_url,
+            timeout=calendar_mcp_timeout,
+        ),
+        tool_filter=["list_calendars", "list_events", "get_event", "create_event", "update_event", "delete_event"],
+    )
+
+
 time_agent = Agent(
     name="time_agent",
     model=build_model(),
@@ -136,6 +151,27 @@ papago_agent = Agent(
 )
 
 
+calendar_agent = Agent(
+    name="calendar_agent",
+    model=build_model(),
+    description="Handles Google Calendar schedule requests through the Calendar MCP server.",
+    instruction=(
+        "You specialize in Google Calendar schedule management. "
+        "Always begin your final answer with '[calendar_agent] '. "
+        "Answer in Korean by default. "
+        "Use list_events to show upcoming events. "
+        "Use create_event to add new events. "
+        "Use update_event to modify existing events. "
+        "Use delete_event to remove events. "
+        "Use list_calendars to show available calendars. "
+        "Use get_event to show event details. "
+        "For dates, use RFC3339 format (e.g. 2025-04-01T09:00:00). "
+        "Default timezone is Asia/Seoul."
+    ),
+    tools=[build_calendar_toolset()],
+)
+
+
 root_agent = Agent(
     name=os.getenv("APP_NAME", "env_agent"),
     model=build_model(),
@@ -147,10 +183,11 @@ root_agent = Agent(
         "You are the root coordinator for local ADK testing. "
         "Answer in Korean by default. "
         "Delegate time questions to time_agent, runtime configuration questions "
-        "to runtime_agent, translation requests to papago_agent, and other "
+        "to runtime_agent, translation requests to papago_agent, "
+        "calendar/schedule requests to calendar_agent, and other "
         "general requests to general_agent. "
         "Return the delegated agent's response as-is so the agent label remains visible. "
         "Never reveal API keys or secret values."
     ),
-    sub_agents=[time_agent, runtime_agent, papago_agent, general_agent],
+    sub_agents=[time_agent, runtime_agent, papago_agent, calendar_agent, general_agent],
 )
