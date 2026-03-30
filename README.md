@@ -1,6 +1,6 @@
 # Google ADK Local Agent
 
-`Google ADK` 기반의 로컬 테스트용 멀티 에이전트 예제입니다. 현재 저장소는 `env_agent` 루트 에이전트가 4개의 서브에이전트(`time_agent`, `runtime_agent`, `papago_agent`, `general_agent`)를 오케스트레이션하고, 이를 `FastAPI` 또는 `adk web`으로 실행할 수 있게 구성되어 있습니다.
+`Google ADK` 기반의 로컬 테스트용 멀티 에이전트 예제입니다. 현재 저장소는 `env_agent` 루트 에이전트가 5개의 서브에이전트(`time_agent`, `runtime_agent`, `papago_agent`, `calendar_agent`, `general_agent`)를 오케스트레이션하고, 이를 `FastAPI` 또는 `adk web`으로 실행할 수 있게 구성되어 있습니다.
 
 모델 공급자는 환경 변수로 전환합니다.
 
@@ -16,12 +16,14 @@ OLLAMA_MODEL=ollama_chat/llama3.1:8b
 # 원격 터널을 사용하는 경우 OLLAMA_API_BASE도 지정 가능합니다.
 PAPAGO_MCP_URL=http://host.docker.internal:8001/mcp
 PAPAGO_MCP_TIMEOUT=10
+CALENDAR_MCP_URL=http://host.docker.internal:8002/mcp
+CALENDAR_MCP_TIMEOUT=10
 ```
 
 ## 구성 개요
 
 - `app.py`: `google.adk.cli.fast_api.get_fast_api_app(...)`로 ADK FastAPI 앱 생성
-- `agents/env_agent/agent.py`: 루트 에이전트와 4개 서브에이전트 정의
+- `agents/env_agent/agent.py`: 루트 에이전트와 5개 서브에이전트 정의
 - `agents/agent.py`: 루트 디렉터리에서 `adk web` 실행 시 호환용 엔트리포인트
 - `docker-compose.yml`: 로컬 Docker 실행용 기본 설정
 
@@ -71,6 +73,8 @@ PORT=8000
 SESSION_DB_URI=sqlite:////data/sessions.db
 PAPAGO_MCP_URL=http://host.docker.internal:8001/mcp
 PAPAGO_MCP_TIMEOUT=10
+CALENDAR_MCP_URL=http://host.docker.internal:8002/mcp
+CALENDAR_MCP_TIMEOUT=10
 ALLOW_ORIGINS=http://localhost:4200,http://127.0.0.1:4200
 ```
 
@@ -87,6 +91,8 @@ PORT=8000
 SESSION_DB_URI=sqlite:////data/sessions.db
 PAPAGO_MCP_URL=http://host.docker.internal:8001/mcp
 PAPAGO_MCP_TIMEOUT=10
+CALENDAR_MCP_URL=http://host.docker.internal:8002/mcp
+CALENDAR_MCP_TIMEOUT=10
 ALLOW_ORIGINS=http://localhost:4200,http://127.0.0.1:4200
 ```
 
@@ -103,6 +109,8 @@ PORT=8000
 SESSION_DB_URI=sqlite:////data/sessions.db
 PAPAGO_MCP_URL=http://host.docker.internal:8001/mcp
 PAPAGO_MCP_TIMEOUT=10
+CALENDAR_MCP_URL=http://host.docker.internal:8002/mcp
+CALENDAR_MCP_TIMEOUT=10
 ALLOW_ORIGINS=http://localhost:4200,http://127.0.0.1:4200
 ```
 
@@ -119,6 +127,18 @@ PAPAGO_MCP_TIMEOUT=10
 - Docker 없이 같은 머신에서 직접 실행할 때만 `127.0.0.1` 또는 `localhost`를 사용합니다.
 - ADK 서버도 기본적으로 `8000` 포트를 쓰므로, Papago MCP 서버는 `8001` 같은 다른 포트로 띄우는 편이 안전합니다.
 - Papago MCP 서버는 `streamable-http` transport 기준으로 `/mcp` 경로가 열려 있어야 합니다.
+
+## Google Calendar MCP 연결
+
+Google Calendar 스케줄 관리는 `calendar_agent`가 외부 MCP 서버에 연결해서 처리합니다.
+
+```env
+CALENDAR_MCP_URL=http://host.docker.internal:8002/mcp
+CALENDAR_MCP_TIMEOUT=10
+```
+
+- Docker 컨테이너에서 호스트 PC의 MCP 서버에 붙을 때는 `host.docker.internal`을 사용합니다.
+- Calendar MCP 서버는 기본적으로 `8002` 포트를 사용하며, `/mcp` 경로를 통해 `streamable-http`로 통신합니다.
 
 ## Docker로 로컬 실행
 
@@ -301,12 +321,13 @@ adk web agents
 
 이 저장소는 루트에서 `adk web`를 실행했을 때의 로딩 차이를 흡수하기 위해 `agents/agent.py`에서 `env_agent.root_agent`를 다시 export 하도록 구성되어 있습니다.
 
-## 현재 에이전트 구성d
+## 현재 에이전트 구성
 
 - `root_agent`: 요청 분류 및 서브에이전트 위임
 - `time_agent`: 현재 시간과 타임존 관련 요청 처리
 - `runtime_agent`: 현재 모델 공급자와 모델 설정 확인
 - `papago_agent`: Papago MCP 기반 번역 요청 처리
+- `calendar_agent`: Google Calendar MCP 기반 일정 조회 및 관리 처리
 - `general_agent`: 일반 대화 및 fallback 처리
 
 ## 참고
