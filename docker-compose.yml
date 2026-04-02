@@ -5,13 +5,16 @@ x-adk-common: &adk-common
     - .env
   environment:
     OLLAMA_API_BASE: ${OLLAMA_API_BASE:-http://host.docker.internal:11434}
-    PAPAGO_MCP_URL: ${PAPAGO_MCP_URL:-http://host.docker.internal:8001/mcp}
-    PAPAGO_MCP_TIMEOUT: ${PAPAGO_MCP_TIMEOUT:-10}
+    EVERYTIME_MCP_URL: ${EVERYTIME_MCP_URL:-http://everytime-mcp:8001/mcp}
+    EVERYTIME_MCP_TIMEOUT: ${EVERYTIME_MCP_TIMEOUT:-10}
   ports:
     - "${PORT:-8000}:8000"
   volumes:
     - ./data:/data
     - .:/app
+  networks:
+    - default
+    - everytime-net
   extra_hosts:
     - "host.docker.internal:host-gateway"
 
@@ -27,3 +30,8 @@ services:
     profiles: ["web"]
     command:
       ["python", "-m", "google.adk.cli", "web", "--host", "0.0.0.0", "--port", "8000", "agents"]
+
+networks:
+  everytime-net:
+    external: true
+    name: everytime-net

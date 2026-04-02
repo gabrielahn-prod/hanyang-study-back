@@ -5,8 +5,8 @@ from zoneinfo import ZoneInfo
 from dotenv import load_dotenv
 from google.adk.agents import Agent
 from google.adk.models.lite_llm import LiteLlm
-from google.adk.tools.mcp_tool import McpToolset
-from google.adk.tools.mcp_tool import StreamableHTTPConnectionParams
+
+from .everytime_agent import create_everytime_agent
 
 load_dotenv()
 
@@ -59,22 +59,6 @@ def build_model():
         return LiteLlm(model=model_name)
     return os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
 
-
-def build_papago_toolset() -> McpToolset:
-    papago_mcp_url = os.getenv("PAPAGO_MCP_URL")
-    if not papago_mcp_url:
-        default_host = "host.docker.internal" if os.path.exists("/.dockerenv") else "127.0.0.1"
-        papago_mcp_url = f"http://{default_host}:8001/mcp"
-    papago_mcp_timeout = float(os.getenv("PAPAGO_MCP_TIMEOUT", "10"))
-    return McpToolset(
-        connection_params=StreamableHTTPConnectionParams(
-            url=papago_mcp_url,
-            timeout=papago_mcp_timeout,
-        ),
-        tool_filter=["translate_text", "detect_and_translate"],
-    )
-
-
 time_agent = Agent(
     name="time_agent",
     model=build_model(),
@@ -119,38 +103,25 @@ general_agent = Agent(
     ),
 )
 
-
-papago_agent = Agent(
-    name="papago_agent",
-    model=build_model(),
-    description="Handles translation requests through the Papago MCP server.",
-    instruction=(
-        "You specialize in translation requests. "
-        "Always begin your final answer with '[papago_agent] '. "
-        "Answer in Korean by default. "
-        "Use the detect_and_translate tool when the user only specifies the target language. "
-        "Use the translate_text tool when the user provides both source and target languages. "
-        "If the MCP tool returns translated_text, present that translation clearly."
-    ),
-    tools=[build_papago_toolset()],
-)
+everytime_agent = create_everytime_agent(build_model())
 
 
 root_agent = Agent(
     name=os.getenv("APP_NAME", "env_agent"),
     model=build_model(),
     description=(
-        "A Google ADK sample root agent that coordinates three specialized "
+        "A Google ADK sample root agent that coordinates specialized "
         "sub-agents."
     ),
     instruction=(
         "You are the root coordinator for local ADK testing. "
         "Answer in Korean by default. "
         "Delegate time questions to time_agent, runtime configuration questions "
-        "to runtime_agent, translation requests to papago_agent, and other "
-        "general requests to general_agent. "
+        "to runtime_agent, Everytime board or campus community requests to "
+        "everytime_agent, and other general requests to general_agent. "
+        "Requests about Everytime home summary, board list, board ids, recent posts, campus community boards, or Everytime debugging should go to everytime_agent. "
         "Return the delegated agent's response as-is so the agent label remains visible. "
         "Never reveal API keys or secret values."
     ),
-    sub_agents=[time_agent, runtime_agent, papago_agent, general_agent],
+    sub_agents=[time_agent, runtime_agent, everytime_agent, general_agent],
 )
